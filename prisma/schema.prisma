@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  phone     String?
+  password  String
+  role      UserRole  @default(CUSTOMER)
+
+  orders    Order[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pickupAddress   String
+  deliveryAddress String
+  pickupDate      DateTime
+
+  itemDescription String
+  weightKg        Float
+  vehicleType     VehicleType   @default(CAR)
+
+  status          OrderStatus   @default(PENDING)
+  estimatedPrice  Float?
+  notes           String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("orders")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  // DRIVER (we can add later)
+}
+
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum VehicleType {
+  BIKE
+  CAR
+  VAN
+  TRUCK
+}
