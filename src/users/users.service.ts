@@ -1,36 +1,32 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserProfile } from '../common/interface/user.interface';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { getDiff } from '../common/utils/object-diff.util';
+import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
   constructor(
     private jwtService: JwtService,
-    private prisma: PrismaService,
+    private usersRepository: UsersRepository,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: createUserDto.email },
-    });
+    const existingUser = await this.usersRepository.findByEmail(
+      createUserDto.email,
+    );
 
     if (existingUser) {
       throw new BadRequestException('Email is already in use');
     }
 
     try {
-      const user = await this.prisma.user.create({
-        data: {
-          name: createUserDto.username,
-          email: createUserDto.email,
-          phone: createUserDto.phone_number,
-          password: createUserDto.password,
-        },
-        select: { id: true, name: true, email: true, phone: true },
+      const user = await this.usersRepository.createUser({
+        name: createUserDto.username,
+        email: createUserDto.email,
+        phone: createUserDto.phone_number,
+        password: createUserDto.password,
       });
 
       return { token: this.generateUserToken(user) };
@@ -48,9 +44,7 @@ export class UsersService {
   }
 
   async getUserToken(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.usersRepository.findByEmail(email);
 
     if (!user || user.password !== password) {
       throw new BadRequestException('Invalid email or password');
@@ -71,24 +65,18 @@ export class UsersService {
   }
 
   async updateUserProfile(user: UserProfile, updateUserDto: UpdateUserDto) {
-    const userData = await this.prisma.user.findUnique({
-      where: { id: user.id },
-    });
+    const userData = await this.usersRepository.findById(user.id);
 
     if (!userData) {
       throw new BadRequestException('User not found');
     }
 
     try {
-      const updatedUser = await this.prisma.user.update({
-        where: { id: user.id },
-        data: getDiff(userData, {
-          name: updateUserDto.username,
-          email: updateUserDto.email,
-          phone: updateUserDto.phone_number,
-        }),
-        select: { id: true, name: true, email: true, phone: true },
-      });
+      const updatedUser = await this.usersRepository.updateUser(
+        user.id,
+        updateUserDto,
+        userData,
+      );
 
       return {
         message: 'Profile updated successfully',
@@ -112,7 +100,12 @@ export class UsersService {
     }
   }
 
-  private generateUserToken(user: { id: string; name: string; email: string }) {
+  private generateUserToken(user: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+  }) {
     const payload = { id: user.id, name: user.name, email: user.email };
     const expiresIn = parseInt(process.env.JWT_EXPIRES_IN || '3600'); // default to 1 hour if not set
 
@@ -120,11 +113,23 @@ export class UsersService {
   }
 
   async validateUser(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, email: true },
-    });
+    const user = await this.usersRepository.findById(userId);
 
-    return user || null;
+    if (!user) {
+      return null;
+    }
+    const { id, name, email } = user;
+    return { id, name, email };
+  }
+
+  getRefreshToken(user: UserProfile) {
+    return { token: this.generateUserToken(user) };
+  }
+
+  logout(user: UserProfile) {
+    return {
+      message:
+        'Logged out successfully' + (user ? ` for user ${user.email}` : ''),
+    };
   }
 }

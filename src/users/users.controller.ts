@@ -6,6 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorator/current-user.decorator';
 import * as userInterface from '../common/interface/user.interface';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Patch } from '@nestjs/common/decorators/http/request-mapping.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -19,6 +20,18 @@ export class UsersController {
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.usersService.getUserToken(loginDto.email, loginDto.password);
+  }
+
+  @Patch('refresh')
+  @UseGuards(AuthGuard('jwt'))
+  refreshToken(@CurrentUser() user: userInterface.UserProfile) {
+    return this.usersService.getRefreshToken(user);
+  }
+
+  @Post('logout')
+  @UseGuards(AuthGuard('jwt'))
+  logout(@CurrentUser() user: userInterface.UserProfile) {
+    return this.usersService.logout(user);
   }
 
   @Get('profile')

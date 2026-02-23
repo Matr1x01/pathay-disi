@@ -1,8 +1,6 @@
 import { registerDecorator, ValidationOptions } from 'class-validator';
 
-export function IsBangladeshPhoneNumber(
-  validationOptions?: ValidationOptions,
-) {
+export function IsBangladeshPhoneNumber(validationOptions?: ValidationOptions) {
   return (object: object, propertyName: string) => {
     registerDecorator({
       name: 'isBangladeshPhoneNumber',
