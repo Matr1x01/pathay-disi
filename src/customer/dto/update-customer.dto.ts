@@ -1,9 +1,9 @@
 import { IsEmail, IsOptional } from 'class-validator';
-import { IsBangladeshPhoneNumber } from '../../common/decorator/bangladesh-phone-number.decorator';
+import { IsBangladeshPhoneNumber } from '../../common/decorators/bangladesh-phone-number.decorator';
 
-export class UpdateUserDto {
+export class UpdateCustomerDto {
   @IsOptional()
-  username?: string;
+  name?: string;
 
   @IsOptional()
   @IsEmail()

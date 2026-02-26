@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { UsersController } from './users.controller';
+import { CustomerService } from './customer.service';
+import { CustomerController } from './customer.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '../auth/strategies/jwt.strategy';
-import { UsersRepository } from './users.repository';
+import { CustomerRepository } from './customer.repository';
 
 @Module({
   imports: [
@@ -16,8 +16,8 @@ import { UsersRepository } from './users.repository';
       signOptions: { expiresIn: '60m' },
     }),
   ],
-  controllers: [UsersController],
-  providers: [UsersService, JwtStrategy, UsersRepository],
-  exports: [UsersService, JwtStrategy, UsersRepository],
+  controllers: [CustomerController],
+  providers: [CustomerService, JwtStrategy, CustomerRepository],
+  exports: [CustomerService, JwtStrategy, CustomerRepository],
 })
-export class UsersModule {}
+export class CustomerModule {}

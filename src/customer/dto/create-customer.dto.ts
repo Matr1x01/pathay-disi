@@ -1,10 +1,10 @@
 import { IsEmail, IsNotEmpty, IsOptional, Length } from 'class-validator';
-import { Match } from 'src/common/decorator/match.decorator';
-import { IsBangladeshPhoneNumber } from '../../common/decorator/bangladesh-phone-number.decorator';
+import { Match } from 'src/common/decorators/match.decorator';
+import { IsBangladeshPhoneNumber } from '../../common/decorators/bangladesh-phone-number.decorator';
 
-export class CreateUserDto {
+export class CreateCustomerDto {
   @IsNotEmpty()
-  username: string;
+  name: string;
 
   @IsNotEmpty()
   @IsEmail()

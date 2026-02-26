@@ -1,12 +1,35 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
+import { CustomerModule } from './customer/customer.module';
 import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import KeyvRedis from '@keyv/redis';
+import { Keyv } from 'keyv';
+import { CacheableMemory } from 'cacheable';
+import { AppCacheModule } from './app-cache/app-cache.module';
 
 @Module({
-  imports: [UsersModule, OrdersModule, PrismaModule],
+  imports: [
+    CustomerModule,
+    OrdersModule,
+    PrismaModule,
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: () => {
+        return {
+          stores: [
+            new Keyv({
+              store: new CacheableMemory({ ttl: 60000, lruSize: 5000 }),
+            }),
+            new KeyvRedis('redis://localhost:6379'),
+          ],
+        };
+      },
+    }),
+    AppCacheModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
