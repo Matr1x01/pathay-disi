@@ -5,13 +5,14 @@ import { IUser } from '../common/interfaces/user.interface'; // Changed from Use
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerRepository } from './customer.repository';
 import { AppCacheService } from '../app-cache/app-cache.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class CustomerService {
   constructor(
     private jwtService: JwtService,
-    private customersRepository: CustomerRepository,
     private appCache: AppCacheService,
+    private customersRepository: CustomerRepository,
   ) {}
 
   async createCustomer(createCustomerDto: CreateCustomerDto) {
@@ -42,7 +43,7 @@ export class CustomerService {
         name: createCustomerDto.name,
         email: createCustomerDto.email,
         phone: createCustomerDto.phone_number,
-        password: createCustomerDto.password,
+        password: await bcrypt.hash(createCustomerDto.password, 10),
       });
 
       await this.appCache.set(`email-otp:${customer.email}`, '123456', 30000); // Store OTP for 5 minutes
@@ -98,7 +99,7 @@ export class CustomerService {
   async getCustomerToken(email: string, password: string) {
     const customer = await this.customersRepository.findActiveByEmail(email);
 
-    if (!customer || customer.password !== password) {
+    if (!customer || !(await bcrypt.compare(password, customer.password))) {
       throw new BadRequestException('Invalid email or password');
     }
 
@@ -175,11 +176,15 @@ export class CustomerService {
   async validateUser(customerId: string): Promise<IUser | null> {
     const customer = await this.customersRepository.findById(customerId);
 
-    if (!customer) {
-      return null;
+    if (customer) {
+      return {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        type: 'customer',
+      };
     }
-    const { id, name, email } = customer;
-    return { id, name, email, type: 'customer' };
+    return null;
   }
 
   getRefreshToken(customer: IUser) {

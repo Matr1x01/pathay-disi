@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { getDiff } from '../common/utils/object-diff.util';
 import { Customer, CustomerStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CustomerRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(protected prisma: PrismaService) {}
 
   async findByEmail(email: string): Promise<Customer | null> {
     return this.prisma.customer.findUnique({
