@@ -2,17 +2,30 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { PermissionRepository } from './permission.repository';
+import {
+  serialize,
+  serializePaginated,
+} from '../../common/utils/serialize.util';
+import { PermissionResponseDto } from './dto/permission-response.dto';
 
 @Injectable()
 export class PermissionService {
   constructor(private permissionRepository: PermissionRepository) {}
 
-  async create(createPermissionDto: CreatePermissionDto) {
-    return this.permissionRepository.create(createPermissionDto);
+  create(createPermissionDto: CreatePermissionDto) {
+    return serialize(
+      PermissionResponseDto,
+      this.permissionRepository.create(createPermissionDto),
+    );
   }
 
-  findAll() {
-    return this.permissionRepository.findAll();
+  async findAll(page: number = 1, perPage: number = 10, search?: string) {
+    const roles = await this.permissionRepository.findAll(
+      page,
+      perPage,
+      search,
+    );
+    return serializePaginated(PermissionResponseDto, roles);
   }
 
   async findOne(id: string) {
@@ -20,12 +33,15 @@ export class PermissionService {
     if (!permission) {
       throw new NotFoundException(`Permission with ID "${id}" not found`);
     }
-    return permission;
+    return serialize(PermissionResponseDto, permission);
   }
 
   async update(id: string, updatePermissionDto: UpdatePermissionDto) {
     await this.findOne(id); // check if permission exists
-    return this.permissionRepository.update(id, updatePermissionDto);
+    return serialize(
+      PermissionResponseDto,
+      this.permissionRepository.update(id, updatePermissionDto),
+    );
   }
 
   async remove(id: string) {

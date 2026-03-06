@@ -1,5 +1,10 @@
-import { IsNotEmpty, IsString } from 'class-validator';
-import { Optional } from '@nestjs/common';
+import {
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateRoleDto {
   @IsNotEmpty()
@@ -7,6 +12,15 @@ export class CreateRoleDto {
   name: string;
 
   @IsString()
-  @Optional()
+  @IsOptional()
   description?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  permissions?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }

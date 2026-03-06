@@ -119,6 +119,7 @@ model Role {
   id          String           @id @default(cuid())
   name        String           @unique          // e.g. "SUPER_ADMIN", "OPERATIONS"
   description String?
+  status      Boolean          @default(true)   // active/inactive role
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 

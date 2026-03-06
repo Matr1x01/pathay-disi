@@ -32,22 +32,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (type == 'customer') {
       const customer = await this.customerService.validateUser(id);
       if (customer) {
-        user = {
-          id: customer.id,
-          name: customer.name,
-          email: customer.email,
-          type: 'customer',
-        };
+        user = customer;
       }
     } else if (type == 'admin') {
       const admin = await this.adminService.validateUser(id);
       if (admin) {
-        user = {
-          id: admin.id,
-          name: admin.name,
-          email: admin.email,
-          type: 'admin',
-        };
+        user = admin;
       }
     } else {
       throw new UnauthorizedException('Unknown user type');

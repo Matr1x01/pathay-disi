@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { paginate } from '../../common/utils/prisma-pagination';
 
 @Injectable()
 export class PermissionRepository {
@@ -13,8 +14,17 @@ export class PermissionRepository {
     });
   }
 
-  async findAll() {
-    return this.prisma.permission.findMany();
+  async findAll(page: number = 1, perPage: number = 10, search?: string) {
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { description: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    return paginate(this.prisma.permission, { page, perPage }, { where });
   }
 
   async findByIds(ids: string[]) {

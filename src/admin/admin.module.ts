@@ -1,15 +1,17 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { RoleModule } from './role/role.module';
 import { PermissionModule } from './permission/permission.module';
 import { RouterModule } from '@nestjs/core';
 import { AdminRepository } from './admin.repository';
-import { AuthModule } from '../auth/auth.module'; // Import AuthModule
+import { AuthModule } from '../auth/auth.module';
+import { RoleRepository } from './role/role.repository'; // Import AuthModule
+import { UsersModule } from './users/users.module';
 
 @Module({
-  providers: [AdminService, AdminRepository],
-  exports: [AdminService, AdminRepository],
+  providers: [AdminService, AdminRepository, RoleRepository],
+  exports: [AdminService, AdminRepository, RoleRepository],
   controllers: [AdminController],
   imports: [
     RoleModule,
@@ -17,15 +19,16 @@ import { AuthModule } from '../auth/auth.module'; // Import AuthModule
     forwardRef(() => AuthModule), // Import AuthModule with forwardRef
     RouterModule.register([
       {
-        path: 'admin',
+        path: '/admin',
         module: AdminModule, // self-reference is important
         children: [
           { path: 'roles', module: RoleModule },
+          { path: 'users', module: UsersModule },
           { path: 'permissions', module: PermissionModule },
           // add more here later
         ],
       },
-    ]),
+    ]), UsersModule,
   ], // Export AdminService for use in other modules (e.g., AuthModule)
 })
 export class AdminModule {}

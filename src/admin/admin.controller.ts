@@ -3,16 +3,29 @@ import { AdminService } from './admin.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import * as userInterface from '../common/interfaces/user.interface';
+import { ChangePasswordDto } from './users/dto/change-password.dto';
 
-@Controller('admin')
+@Controller('')
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
-  @Post('login')
+  @Post('auth/login')
   async login(
     @Body() { email, password }: { email: string; password: string },
   ) {
     return this.adminService.login(email, password);
+  }
+
+  @Post('auth/logout')
+  @UseGuards(AuthGuard('jwt')) // Protect this route with JWT authentication
+  logout(@CurrentUser() admin: userInterface.IUser) {
+    return this.adminService.logout(admin);
+  }
+
+  @Get('auth/me')
+  @UseGuards(AuthGuard('jwt')) // Protect this route with JWT authentication
+  me(@CurrentUser() admin: userInterface.IUser) {
+    return this.adminService.me(admin);
   }
 
   @Get('profile')
@@ -21,17 +34,12 @@ export class AdminController {
     return this.adminService.getProfile(admin.id);
   }
 
-  @Get('dashboard')
+  @Post('change-password')
   @UseGuards(AuthGuard('jwt')) // Protect this route with JWT authentication
-  getDashboard(@CurrentUser() admin: userInterface.IUser) {
-    // This is a placeholder for actual dashboard data
-    return {
-      message: `Welcome to the admin dashboard, ${admin.name}!`,
-      stats: {
-        users: 1000,
-        orders: 500,
-        revenue: 100000,
-      },
-    };
+  changePassword(
+    @CurrentUser() admin: userInterface.IUser,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.adminService.changePassword(admin.id, changePasswordDto);
   }
 }
