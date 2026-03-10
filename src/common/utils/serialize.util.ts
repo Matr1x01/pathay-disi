@@ -1,4 +1,4 @@
-import { ClassConstructor, plainToInstance, } from 'class-transformer';
+import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { PaginatedResult } from './prisma-pagination';
 
 /**

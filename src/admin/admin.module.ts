@@ -8,6 +8,9 @@ import { AdminRepository } from './admin.repository';
 import { AuthModule } from '../auth/auth.module';
 import { RoleRepository } from './role/role.repository'; // Import AuthModule
 import { UsersModule } from './users/users.module';
+import { CustomerModule } from './customer/customer.module';
+import { OrderModule } from './order/order.module';
+import { AdminRaiderModule } from './raider/raider.module';
 
 @Module({
   providers: [AdminService, AdminRepository, RoleRepository],
@@ -25,10 +28,17 @@ import { UsersModule } from './users/users.module';
           { path: 'roles', module: RoleModule },
           { path: 'users', module: UsersModule },
           { path: 'permissions', module: PermissionModule },
+          { path: 'customers', module: CustomerModule },
+          { path: 'orders', module: OrderModule },
+          { path: 'raiders', module: AdminRaiderModule },
           // add more here later
         ],
       },
-    ]), UsersModule,
+    ]),
+    UsersModule,
+    CustomerModule,
+    OrderModule,
+    AdminRaiderModule,
   ], // Export AdminService for use in other modules (e.g., AuthModule)
 })
 export class AdminModule {}

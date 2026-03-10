@@ -213,7 +213,18 @@ export class AdminService {
     });
   }
 
-  private getAdminRolesPermissions(admin: any) {
+  private getAdminRolesPermissions(admin: {
+    roles: AdminRole[];
+    id: string;
+    email: string;
+    phone: string;
+    name: string;
+    password: string;
+    isActive: boolean;
+    avatarUrl: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
     const permissions: { id: string; name: string }[] = [];
     const roles: { id: string; name: string }[] = [];
 
