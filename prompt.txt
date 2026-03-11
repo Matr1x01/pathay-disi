@@ -1,0 +1,15 @@
+Please create a new REST API resource for the raider model, matching the architectural pattern used in the `src/admin/role` module in this NestJS + Prisma project.
+
+1. **Location**: Create the module under `src/admin/raider`.
+2. **Schema Reference**: Look at `prisma/schema.prisma` for the `${MODEL_NAME}` model definition to understand the fields and relationships.
+3. **Components to Create**:
+   - `dto/create-raider.dto.ts`: Define validation with `class-validator` based on the schema.
+   - `dto/update-raider.dto.ts`: Extend the Create DTO using `PartialType` (or make all fields optional).
+   - `dto/raider-response.dto.ts`: Define serialization using `class-transformer` `@Expose()`.
+   - `raider.repository.ts`: Inject `PrismaService` and implement `create`, `findAll` (with pagination, search, sorting), `findOne`, `update`, and `remove`.
+   - `raider.service.ts`: Inject the repository, add any necessary business logic (e.g., checking if relationships exist), and serialize outputs.
+   - `raider.controller.ts`: Create standard CRUD endpoints (`@Get`, `@Post`, `@Patch`, `@Delete`). Protect endpoints using `@UseGuards(AuthGuard('jwt'), PermissionsGuard)` and proper `@Permission(['...'])` decorators.
+   - `raider.module.ts`: Wire up the Controller, Service, and Repository, and import `PrismaModule`.
+4. **App Integration**: Finally, update `app.module.ts` (or the relevant parent module) to import the new `${CapitalizedModuleName}Module`.
+
+Ensure all code passes strict TypeScript checks and uses the project's existing pagination (`paginate` util) and serialization (`serializePaginated`, `serialize`) utilities.

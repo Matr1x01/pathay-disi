@@ -6,62 +6,288 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  name      String
-  phone     String?
-  password  String
-  role      UserRole  @default(CUSTOMER)
+// ─── Enums ───────────────────────────────────────────────────────────────────
 
-  orders    Order[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@map("users")
+enum CustomerStatus {
+  ACTIVE
+  PENDING
+  INACTIVE
+  BLOCKED     // future: fraud prevention
 }
 
-model Order {
-  id              String        @id @default(cuid())
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  pickupAddress   String
-  deliveryAddress String
-  pickupDate      DateTime
-
-  itemDescription String
-  weightKg        Float
-  vehicleType     VehicleType   @default(CAR)
-
-  status          OrderStatus   @default(PENDING)
-  estimatedPrice  Float?
-  notes           String?
-
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@map("orders")
-}
-
-enum UserRole {
-  CUSTOMER
-  ADMIN
-  // DRIVER (we can add later)
+enum AdminRoleName {
+  SUPER_ADMIN
+  OPERATIONS
+  FINANCE
+  SUPPORT
+  VIEW_ONLY
 }
 
 enum OrderStatus {
-  PENDING
-  ASSIGNED
+  PENDING             // new order, not yet accepted
+  ACCEPTED            // raider accepted
+  PICKED_UP           // raider picked up parcel
   IN_TRANSIT
-  DELIVERED
+  ARRIVED             // at dropoff
+  COMPLETED
   CANCELLED
+  FAILED              // e.g. customer not reachable
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIAL_REFUND
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  MOBILE_BANKING
+  CARD
+  WALLET
+  BANK_TRANSFER
 }
 
 enum VehicleType {
   BIKE
+  MOTORCYCLE
   CAR
   VAN
   TRUCK
+  BICYCLE     // for very light urban parcels
+}
+
+// ─── Customer ────────────────────────────────────────────────────────────────
+
+model Customer {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String
+  phone           String?          @unique
+  password        String           // hashed
+  status          CustomerStatus   @default(PENDING)
+  avatarUrl       String?          // profile picture
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?        // soft delete
+
+  orders          Order[]
+  addresses       Address[]
+  payments        Payment[]        // customer's payment history
+  reviewsGiven    Review[]         @relation("CustomerReviews")
+
+  @@map("customers")
+  @@index([phone])
+  @@index([email])
+}
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+model Admin {
+  id              String         @id @default(cuid())
+  email           String         @unique
+  phone           String         @unique
+  name            String
+  password        String         // hashed
+  isActive        Boolean        @default(true)
+  avatarUrl       String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  roles           AdminRole[]
+
+  @@map("admins")
+  @@index([email])
+}
+
+// Junction: Admin ↔ Role (many-to-many)
+model AdminRole {
+  id        String     @id @default(cuid())
+  admin     Admin      @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  adminId   String
+  role      Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId    String
+  assignedAt DateTime  @default(now())
+
+  @@unique([adminId, roleId])
+  @@map("admin_roles")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique          // e.g. "SUPER_ADMIN", "OPERATIONS"
+  description String?
+  status      Boolean          @default(true)   // active/inactive role
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  admins      AdminRole[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+// Junction: Role ↔ Permission
+model RolePermission {
+  id           String     @id @default(cuid())
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+  assignedAt   DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique          // e.g. "orders:read", "raiders:assign"
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+// ─── Raider (Driver / Rider) ─────────────────────────────────────────────────
+
+model Raider {
+  id              String      @id @default(cuid())
+  name            String
+  email           String      @unique
+  phone           String      @unique
+  password        String      // hashed
+  vehicleType     VehicleType @default(BIKE)
+  vehicleNumber   String?     // e.g. "DHAKA-METRO-GA-12-3456"
+  licenseNumber   String?
+  currentLat      Float?      // for real-time location (updated frequently)
+  currentLng      Float?
+  isOnline        Boolean     @default(false)
+  isAvailable     Boolean     @default(true)  // not on break / busy
+  rating          Float       @default(5.0)
+  totalDeliveries Int         @default(0)
+  avatarUrl       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  orders          Order[]
+
+  @@map("raiders")
+  @@index([phone])
+  @@index([isOnline, isAvailable])   // fast lookup for assignment
+  reviews Review[]
+}
+
+// ─── Order ───────────────────────────────────────────────────────────────────
+
+model Order {
+  id                  String        @id @default(cuid())
+  customer            Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId          String
+  raider              Raider?       @relation(fields: [raiderId], references: [id], onDelete: SetNull)
+  raiderId            String?
+  status              OrderStatus   @default(PENDING)
+  pickupAddress       String        // full text or structured later
+  pickupLat           Float?
+  pickupLng           Float?
+  dropoffAddress      String
+  dropoffLat          Float?
+  dropoffLng          Float?
+  packageDescription  String?
+  packageWeightKg     Float?
+  packageValue        Float?        // for insurance / COD
+  distanceKm          Float?        // estimated
+  durationMinutes     Int?          // estimated
+  actualDistanceKm    Float?
+  actualDurationMinutes Int?
+  price               Float
+  discount            Float?        @default(0)
+  finalPrice          Float?
+  paymentStatus       PaymentStatus @default(PENDING)
+  cancellationReason  String?
+  cancelledBy         String?       // "CUSTOMER", "RAIDER", "SYSTEM"
+  acceptedAt          DateTime?
+  pickedUpAt          DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  notes               String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  payment             Payment?
+  review              Review?
+
+  @@map("orders")
+  @@index([customerId])
+  @@index([raiderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─── Payment ─────────────────────────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(cuid())
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId         String        @unique
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  customerId      String
+  amount          Float
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?       // from gateway
+  paidAt          DateTime?
+  refundedAt      DateTime?
+  refundAmount    Float?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("payments")
+  @@index([orderId])
+  @@index([customerId])
+}
+
+// ─── Review / Rating ─────────────────────────────────────────────────────────
+
+model Review {
+  id          String   @id @default(cuid())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String   @unique
+  customer    Customer @relation("CustomerReviews", fields: [customerId], references: [id])
+  customerId  String
+  raider      Raider   @relation(fields: [raiderId], references: [id])
+  raiderId    String
+  rating      Int      // 1–5
+  comment     String?
+  createdAt   DateTime @default(now())
+
+  @@map("reviews")
+  @@index([raiderId])
+}
+
+// ─── Address (saved addresses for customers) ────────────────────────────────
+
+model Address {
+  id          String   @id @default(cuid())
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String
+  label       String?  // "Home", "Office"
+  street      String
+  city        String
+  state       String?
+  zipCode     String?
+  country     String   @default("Bangladesh")
+  lat         Float?
+  lng         Float?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("addresses")
+  @@index([customerId])
 }

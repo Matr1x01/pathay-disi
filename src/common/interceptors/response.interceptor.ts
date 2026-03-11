@@ -5,10 +5,13 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { map, Observable } from 'rxjs';
-import { ApiResponse } from '../interface/api-response.interface';
+import { ApiResponse } from '../interfaces/api-response.interface';
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
@@ -21,6 +24,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>
         statusCode: response.statusCode,
         message: (data as any)?.message || 'Success',
         data: (data as any)?.data ?? data,
+        pagination: (data as any)?.pagination,
       })),
     );
   }
