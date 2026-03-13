@@ -4,6 +4,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { paginate } from '../../common/utils/prisma-pagination';
 import { OrderStatus } from '@prisma/client';
+import generateUniqueString from '../../common/utils/generateUniqueString';
 
 @Injectable()
 export class OrderRepository {
@@ -12,6 +13,7 @@ export class OrderRepository {
   async create(createOrderDto: CreateOrderDto) {
     return this.prisma.order.create({
       data: {
+        orderKey: generateUniqueString(),
         customerId: createOrderDto.customerId,
         raiderId: createOrderDto.raiderId,
         pickupAddress: createOrderDto.pickupAddress,

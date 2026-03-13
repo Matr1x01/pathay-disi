@@ -5,8 +5,18 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  @Get('get-package-types')
+  getPackageTypes() {
+    return this.appService.getPackageTypes();
+  }
+
+  @Get('get-weight-options')
+  getWeightOptions() {
+    return this.appService.getWeightOptions();
+  }
+
+  @Get('get-payment-methods')
+  getPaymentMethods() {
+    return this.appService.getPaymentMethods();
   }
 }

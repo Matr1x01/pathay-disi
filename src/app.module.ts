@@ -10,6 +10,8 @@ import { CacheableMemory } from 'cacheable';
 import { AppCacheModule } from './app-cache/app-cache.module';
 import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
+import { LocationModule } from './location/location.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { AuthModule } from './auth/auth.module';
       },
     }),
     AppCacheModule,
+    LocationModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
