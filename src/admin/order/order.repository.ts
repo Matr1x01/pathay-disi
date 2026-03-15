@@ -16,6 +16,8 @@ export class OrderRepository {
         orderKey: generateUniqueString(),
         customerId: createOrderDto.customerId,
         raiderId: createOrderDto.raiderId,
+        recipientName: createOrderDto.recipientName,
+        recipientPhone: createOrderDto.recipientPhone,
         pickupAddress: createOrderDto.pickupAddress,
         pickupLat: createOrderDto.pickupLat,
         pickupLng: createOrderDto.pickupLng,

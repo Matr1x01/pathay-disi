@@ -19,6 +19,14 @@ export class CreateOrderDto {
 
   @IsNotEmpty()
   @IsString()
+  recipientName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  recipientPhone: string;
+
+  @IsNotEmpty()
+  @IsString()
   pickupAddress: string;
 
   @IsOptional()

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -33,5 +33,10 @@ export class OrdersController {
   @Post('estimate-cost')
   estimateCost(@Body() estimateCost: EstimateCostDto) {
     return this.ordersService.estimateCost(estimateCost);
+  }
+
+  @Get('/:orderKey')
+  getOrder(@Param('orderKey') orderKey: string) {
+    return this.ordersService.getOrdersByKey(orderKey);
   }
 }

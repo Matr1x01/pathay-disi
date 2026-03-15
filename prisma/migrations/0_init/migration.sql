@@ -1,20 +1,6 @@
-/*
-  Warnings:
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
 
-  - The values [ASSIGNED,DELIVERED] on the enum `OrderStatus` will be removed. If these variants are still used in the database, this will fail.
-  - You are about to drop the column `deliveryAddress` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the column `estimatedPrice` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the column `itemDescription` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the column `pickupDate` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the column `userId` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the column `vehicleType` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the column `weightKg` on the `orders` table. All the data in the column will be lost.
-  - You are about to drop the `users` table. If the table is not empty, all the data it contains will be lost.
-  - Added the required column `customerId` to the `orders` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `dropoffAddress` to the `orders` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `price` to the `orders` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateEnum
 CREATE TYPE "CustomerStatus" AS ENUM ('ACTIVE', 'PENDING', 'INACTIVE', 'BLOCKED');
 
@@ -22,74 +8,16 @@ CREATE TYPE "CustomerStatus" AS ENUM ('ACTIVE', 'PENDING', 'INACTIVE', 'BLOCKED'
 CREATE TYPE "AdminRoleName" AS ENUM ('SUPER_ADMIN', 'OPERATIONS', 'FINANCE', 'SUPPORT', 'VIEW_ONLY');
 
 -- CreateEnum
+CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED', 'CANCELLED', 'FAILED');
+
+-- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'PAID', 'FAILED', 'REFUNDED', 'PARTIAL_REFUND');
 
 -- CreateEnum
 CREATE TYPE "PaymentMethod" AS ENUM ('CASH_ON_DELIVERY', 'MOBILE_BANKING', 'CARD', 'WALLET', 'BANK_TRANSFER');
 
--- AlterEnum
-BEGIN;
-CREATE TYPE "OrderStatus_new" AS ENUM ('PENDING', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED', 'CANCELLED', 'FAILED');
-ALTER TABLE "public"."orders" ALTER COLUMN "status" DROP DEFAULT;
-ALTER TABLE "orders" ALTER COLUMN "status" TYPE "OrderStatus_new" USING ("status"::text::"OrderStatus_new");
-ALTER TYPE "OrderStatus" RENAME TO "OrderStatus_old";
-ALTER TYPE "OrderStatus_new" RENAME TO "OrderStatus";
-DROP TYPE "public"."OrderStatus_old";
-ALTER TABLE "orders" ALTER COLUMN "status" SET DEFAULT 'PENDING';
-COMMIT;
-
--- AlterEnum
--- This migration adds more than one value to an enum.
--- With PostgreSQL versions 11 and earlier, this is not possible
--- in a single migration. This can be worked around by creating
--- multiple migrations, each migration adding only one value to
--- the enum.
-
-
-ALTER TYPE "VehicleType" ADD VALUE 'MOTORCYCLE';
-ALTER TYPE "VehicleType" ADD VALUE 'BICYCLE';
-
--- DropForeignKey
-ALTER TABLE "orders" DROP CONSTRAINT "orders_userId_fkey";
-
--- AlterTable
-ALTER TABLE "orders" DROP COLUMN "deliveryAddress",
-DROP COLUMN "estimatedPrice",
-DROP COLUMN "itemDescription",
-DROP COLUMN "pickupDate",
-DROP COLUMN "userId",
-DROP COLUMN "vehicleType",
-DROP COLUMN "weightKg",
-ADD COLUMN     "acceptedAt" TIMESTAMP(3),
-ADD COLUMN     "actualDistanceKm" DOUBLE PRECISION,
-ADD COLUMN     "actualDurationMinutes" INTEGER,
-ADD COLUMN     "cancellationReason" TEXT,
-ADD COLUMN     "cancelledAt" TIMESTAMP(3),
-ADD COLUMN     "cancelledBy" TEXT,
-ADD COLUMN     "completedAt" TIMESTAMP(3),
-ADD COLUMN     "customerId" TEXT NOT NULL,
-ADD COLUMN     "discount" DOUBLE PRECISION DEFAULT 0,
-ADD COLUMN     "distanceKm" DOUBLE PRECISION,
-ADD COLUMN     "dropoffAddress" TEXT NOT NULL,
-ADD COLUMN     "dropoffLat" DOUBLE PRECISION,
-ADD COLUMN     "dropoffLng" DOUBLE PRECISION,
-ADD COLUMN     "durationMinutes" INTEGER,
-ADD COLUMN     "finalPrice" DOUBLE PRECISION,
-ADD COLUMN     "packageDescription" TEXT,
-ADD COLUMN     "packageValue" DOUBLE PRECISION,
-ADD COLUMN     "packageWeightKg" DOUBLE PRECISION,
-ADD COLUMN     "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
-ADD COLUMN     "pickedUpAt" TIMESTAMP(3),
-ADD COLUMN     "pickupLat" DOUBLE PRECISION,
-ADD COLUMN     "pickupLng" DOUBLE PRECISION,
-ADD COLUMN     "price" DOUBLE PRECISION NOT NULL,
-ADD COLUMN     "raiderId" TEXT;
-
--- DropTable
-DROP TABLE "users";
-
--- DropEnum
-DROP TYPE "UserRole";
+-- CreateEnum
+CREATE TYPE "VehicleType" AS ENUM ('BIKE', 'MOTORCYCLE', 'CAR', 'VAN', 'TRUCK', 'BICYCLE');
 
 -- CreateTable
 CREATE TABLE "customers" (
@@ -114,6 +42,7 @@ CREATE TABLE "admins" (
     "phone" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "password" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
     "avatarUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -136,6 +65,7 @@ CREATE TABLE "roles" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
+    "status" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -184,6 +114,46 @@ CREATE TABLE "raiders" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "raiders_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "orders" (
+    "id" TEXT NOT NULL,
+    "orderKey" TEXT NOT NULL,
+    "customerId" TEXT NOT NULL,
+    "raiderId" TEXT,
+    "recipientName" TEXT NOT NULL,
+    "recipientPhone" TEXT NOT NULL,
+    "status" "OrderStatus" NOT NULL DEFAULT 'PENDING',
+    "pickupAddress" TEXT NOT NULL,
+    "pickupLat" DOUBLE PRECISION,
+    "pickupLng" DOUBLE PRECISION,
+    "dropoffAddress" TEXT NOT NULL,
+    "dropoffLat" DOUBLE PRECISION,
+    "dropoffLng" DOUBLE PRECISION,
+    "packageDescription" TEXT,
+    "packageWeightKg" DOUBLE PRECISION,
+    "packageValue" DOUBLE PRECISION,
+    "distanceKm" DOUBLE PRECISION,
+    "durationMinutes" INTEGER,
+    "actualDistanceKm" DOUBLE PRECISION,
+    "actualDurationMinutes" INTEGER,
+    "price" DOUBLE PRECISION NOT NULL,
+    "discount" DOUBLE PRECISION DEFAULT 0,
+    "finalPrice" DOUBLE PRECISION,
+    "paymentStatus" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "paymentMethod" TEXT NOT NULL DEFAULT 'COD',
+    "cancellationReason" TEXT,
+    "cancelledBy" TEXT,
+    "acceptedAt" TIMESTAMP(3),
+    "pickedUpAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -282,6 +252,21 @@ CREATE INDEX "raiders_phone_idx" ON "raiders"("phone");
 CREATE INDEX "raiders_isOnline_isAvailable_idx" ON "raiders"("isOnline", "isAvailable");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "orders_orderKey_key" ON "orders"("orderKey");
+
+-- CreateIndex
+CREATE INDEX "orders_customerId_idx" ON "orders"("customerId");
+
+-- CreateIndex
+CREATE INDEX "orders_raiderId_idx" ON "orders"("raiderId");
+
+-- CreateIndex
+CREATE INDEX "orders_status_idx" ON "orders"("status");
+
+-- CreateIndex
+CREATE INDEX "orders_createdAt_idx" ON "orders"("createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "payments_orderId_key" ON "payments"("orderId");
 
 -- CreateIndex
@@ -298,18 +283,6 @@ CREATE INDEX "reviews_raiderId_idx" ON "reviews"("raiderId");
 
 -- CreateIndex
 CREATE INDEX "addresses_customerId_idx" ON "addresses"("customerId");
-
--- CreateIndex
-CREATE INDEX "orders_customerId_idx" ON "orders"("customerId");
-
--- CreateIndex
-CREATE INDEX "orders_raiderId_idx" ON "orders"("raiderId");
-
--- CreateIndex
-CREATE INDEX "orders_status_idx" ON "orders"("status");
-
--- CreateIndex
-CREATE INDEX "orders_createdAt_idx" ON "orders"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "admin_roles" ADD CONSTRAINT "admin_roles_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "admins"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -346,3 +319,4 @@ ALTER TABLE "reviews" ADD CONSTRAINT "reviews_raiderId_fkey" FOREIGN KEY ("raide
 
 -- AddForeignKey
 ALTER TABLE "addresses" ADD CONSTRAINT "addresses_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

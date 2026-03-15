@@ -20,6 +20,12 @@ export class PlaceOrderDto {
   dropoffLng: number;
 
   @IsNotEmpty()
+  recipientName: string;
+
+  @IsNotEmpty()
+  recipientPhone: string;
+
+  @IsNotEmpty()
   @Min(0)
   price: number;
 

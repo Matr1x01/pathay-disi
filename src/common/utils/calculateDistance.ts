@@ -11,7 +11,7 @@ export default function calculateDistance(
   lon1: number,
   lat2: number,
   lon2: number,
-) {
+): number {
   const R = 6371; // Radius of the Earth in kilometers
   const dLat = ((lat2 - lat1) * Math.PI) / 180; // Convert degrees to radians
   const dLon = ((lon2 - lon1) * Math.PI) / 180;

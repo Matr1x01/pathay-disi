@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { OrderRepository } from './order.repository';
 import { IUser } from '../common/interfaces/user.interface';
 import { PlaceOrderDto } from './dto/place-order.dto';
@@ -8,10 +8,11 @@ import calculateDistance from '../common/utils/calculateDistance';
 import getPackageDict from '../common/utils/getPackageDict';
 import { serializeArray } from '../common/utils/serialize.util';
 import { OrderResponseDto } from './dto/order-response.dto';
+import { NotFoundError } from 'rxjs';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly ordersRepository: OrderRepository) {}
+  constructor(private readonly ordersRepository: OrderRepository) { }
 
   private platformCost = 10;
 
@@ -30,6 +31,8 @@ export class OrdersService {
       dropoffAddress: placeOrderDto.dropoffAddress,
       dropoffLat: placeOrderDto.dropoffLat,
       dropoffLng: placeOrderDto.dropoffLng,
+      recipientName: placeOrderDto.recipientName,
+      recipientPhone: placeOrderDto.recipientPhone,
       packageDescription: placeOrderDto.packageDescription,
       packageWeightKg: placeOrderDto.packageWeightKg,
       packageValue: placeOrderDto.packageValue,
@@ -63,9 +66,9 @@ export class OrdersService {
     return (
       getPackageDict()[packageType].cost +
       weight *
-        costPerKilo *
-        10 *
-        calculateDistance(pickUpLat, pickUpLng, dropOffLat, dropOffLng)
+      costPerKilo *
+      10 *
+      calculateDistance(pickUpLat, pickUpLng, dropOffLat, dropOffLng)
     );
   }
 
@@ -88,5 +91,54 @@ export class OrdersService {
   async getOrders(customer: IUser) {
     const orders = await this.ordersRepository.getUserOrders(customer.id);
     return serializeArray(OrderResponseDto, orders);
+  }
+
+  async getOrdersByKey(orderKey: string) {
+    const order = await this.ordersRepository.getOrderByOrderKey(orderKey);
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const timeline = [
+      {
+        status: OrderStatus.PENDING,
+        label: 'Order Placed',
+        timestamp: order.createdAt,
+        completed: true,
+        active: false,
+      },
+    ];
+
+    const minPerHr = 4;
+    const distance = calculateDistance(
+      order.pickupLat ?? 0,
+      order.pickupLng ?? 0,
+      order.dropoffLat ?? 0,
+      order.dropoffLng ?? 0,
+    );
+    const estimatedDelivery = distance * minPerHr;
+
+    return {
+      orderKey: order.orderKey,
+      status: order.status,
+      statusLabel: order.status,
+      merchantName: order.customer.name,
+      customerName: order.recipientName,
+      customerPhone: order.recipientPhone,
+      riderName: order.raider?.name,
+      riderPhone: order.raider?.phone,
+      pickupAddress: order.pickupAddress,
+      deliveryAddress: order.dropoffAddress,
+      pickupCoords: [order.pickupLat, order.pickupLng],
+      deliveryCoords: [order.dropoffLat, order.dropoffLng],
+      // riderCoords: [order.raider?.currentLat, order.raider?.currentLng],
+      riderCoords: null,
+      weight: order.packageWeightKg,
+      codAmount: order.finalPrice,
+      createdAt: order.createdAt,
+      estimatedDelivery: estimatedDelivery,
+      timeline: timeline,
+    };
   }
 }

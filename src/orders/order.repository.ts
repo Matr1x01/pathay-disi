@@ -33,6 +33,8 @@ export class OrderRepository {
     dropoffAddress: string;
     dropoffLat: number;
     dropoffLng: number;
+    recipientName: string;
+    recipientPhone: string;
     packageDescription: string;
     packageWeightKg: number;
     packageValue: number;
@@ -47,6 +49,20 @@ export class OrderRepository {
       data: { ...data, orderKey: generateUniqueString() },
       include: {
         customer: { select: { id: true, name: true, email: true } },
+      },
+    });
+  }
+
+  getOrderByOrderKey(orderKey: string) {
+    return this.prisma.order.findUnique({
+      where: { orderKey: orderKey },
+      include: {
+        customer: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
+        raider: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
       },
     });
   }

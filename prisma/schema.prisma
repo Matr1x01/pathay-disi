@@ -192,6 +192,8 @@ model Order {
   customerId            String
   raider                Raider?       @relation(fields: [raiderId], references: [id], onDelete: SetNull)
   raiderId              String?
+  recipientName         String
+  recipientPhone        String
   status                OrderStatus   @default(PENDING)
   pickupAddress         String // full text or structured later
   pickupLat             Float?
